@@ -21,13 +21,12 @@ from . import config
 
 
 def build_bronze() -> pl.DataFrame:
-    # 1. Читаємо NDJSON ліниво за допомогою схеми з config
+
     lazy_df = pl.scan_ndjson(
         config.LANDING_FILE,
         schema=config.LANDING_SCHEMA
     )
 
-    # 2. Розгортаємо та трансформуємо поля згідно з контрактом
     bronze_lazy = lazy_df.select([
         pl.col("id").alias("event_id"),
         pl.col("type").alias("event_type"),
@@ -48,11 +47,10 @@ def build_bronze() -> pl.DataFrame:
         .alias("commit_count"),
     ])
 
-    # 3. Виконуємо обчислення (.collect())
     df = bronze_lazy.collect()
 
-    # 4. Створюємо папку та записуємо результати в Parquet
     os.makedirs(os.path.dirname(config.BRONZE_FILE), exist_ok=True)
+    
     df.write_parquet(config.BRONZE_FILE)
 
     return df
