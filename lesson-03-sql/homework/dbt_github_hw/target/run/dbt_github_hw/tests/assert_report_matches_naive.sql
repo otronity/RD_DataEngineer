@@ -1,0 +1,27 @@
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  -- Перевірка task 7: оптимізований report_category_week має повертати ТОЧНО ті самі рядки,
+-- що й report_category_week_naive. Оптимізація змінює лише план виконання, не результат.
+-- Симетрична різниця множин має бути порожня → 0 рядків.
+SELECT * FROM (
+    SELECT * FROM "warehouse"."main"."report_category_week"
+    EXCEPT
+    SELECT * FROM "warehouse"."main"."report_category_week_naive"
+)
+UNION ALL
+SELECT * FROM (
+    SELECT * FROM "warehouse"."main"."report_category_week_naive"
+    EXCEPT
+    SELECT * FROM "warehouse"."main"."report_category_week"
+)
+  
+  
+      
+    ) dbt_internal_test
