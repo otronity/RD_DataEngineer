@@ -1,0 +1,11 @@
+
+    
+    
+    truncate table "warehouse"."main"."event_categories";
+    -- dbt seed --
+    
+          COPY "warehouse"."main"."event_categories" FROM 'C:\Mom_Learn\RD_DataEng\lesson-03-sql\homework\dbt_github_hw\seeds\event_categories.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')
+        
+
+;
+  
