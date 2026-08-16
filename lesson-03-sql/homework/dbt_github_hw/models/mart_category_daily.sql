@@ -3,11 +3,24 @@
 -- Широка вітрина: multi-join stg_events + event_categories + calendar, агрегація по (день × категорія).
 -- Контракт колонок нижче; заглушка повертає 0 рядків.
 -- =====================================================================
-SELECT
-    NULL::DATE    AS event_date,
-    NULL::BOOLEAN AS is_weekend,
-    NULL::VARCHAR AS category,
-    NULL::BIGINT  AS events,
-    NULL::BIGINT  AS distinct_repos,
-    NULL::BIGINT  AS distinct_actors
-WHERE false  -- TODO: 3-way join + GROUP BY (event_date, is_weekend, category)
+
+
+select
+    e.event_date,
+    cal.is_weekend,
+    c.category,
+    count(*) as events,
+    count(distinct e.repo_name) as distinct_repos,
+    count(distinct e.actor_login) as distinct_actors
+from {{ ref('stg_events') }} e
+join {{ ref('event_categories') }} c
+    on e.event_type = c.event_type
+join {{ ref('calendar') }} cal
+    on e.event_date = cal.day
+group by
+    e.event_date,
+    cal.is_weekend,
+    c.category
+order by
+    e.event_date,
+    c.category

@@ -10,8 +10,21 @@
 -- Перевірте план: EXPLAIN ANALYZE на скомпільованій моделі → «Total Files Read».
 -- Контракт колонок нижче; заглушка повертає 0 рядків.
 -- =====================================================================
-SELECT
-    NULL::BIGINT  AS iso_week,
-    NULL::VARCHAR AS category,
-    NULL::BIGINT  AS events
-WHERE false  -- TODO: оптимізований варіант report_category_week_naive (join по e.event_date = c.day)
+
+select
+    c.iso_week,
+    cat.category,
+    count(*) as events
+from {{ ref('stg_events') }} e
+join {{ ref('event_categories') }} cat
+    on e.event_type = cat.event_type
+join {{ ref('calendar') }} c
+    on e.event_date = c.day
+where c.iso_week = 2
+group by
+    c.iso_week,
+    cat.category
+order by
+    cat.category
+    
+    
