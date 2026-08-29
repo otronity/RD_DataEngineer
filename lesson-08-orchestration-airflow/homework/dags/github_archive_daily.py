@@ -64,6 +64,7 @@ with DAG(
     schedule="0 6 * * *",
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    max_active_runs=1,
     tags=["github", "archive", "duckdb"],
 ) as dag:
 
