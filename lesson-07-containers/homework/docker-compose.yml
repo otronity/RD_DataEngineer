@@ -15,3 +15,45 @@
 # Перевірте: docker compose up --build  (ingestor завершиться, дані будуть у Postgres).
 
 # TODO: опишіть services та volumes тут.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gh}
+      POSTGRES_DB: ${POSTGRES_DB:-gharchive}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gh} -d ${POSTGRES_DB:-gharchive}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-gh}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-gh}
+      PGDATABASE: ${POSTGRES_DB:-gharchive}
+    volumes:
+      - ingestor_cache:/cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+  ingestor_cache:
+
+networks:
+  app-network:
