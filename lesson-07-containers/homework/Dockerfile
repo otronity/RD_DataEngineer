@@ -19,10 +19,9 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd -m -u 1000 appuser
+RUN useradd -u 1000 appuser && \
+    mkdir -p /cache && \
+    chown -R appuser:appuser /cache
 
 WORKDIR /app
 
@@ -30,8 +29,7 @@ COPY app/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./
-
-RUN mkdir -p /cache && chown -R appuser:appuser /app /cache
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
