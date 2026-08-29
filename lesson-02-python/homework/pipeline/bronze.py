@@ -14,7 +14,6 @@ TODO (Завдання 1): реалізуйте build_bronze().
 
 from __future__ import annotations
 
-import os
 import polars as pl
 
 from . import config
@@ -48,9 +47,7 @@ def build_bronze() -> pl.DataFrame:
     ])
 
     df = bronze_lazy.collect()
-
-    os.makedirs(os.path.dirname(config.BRONZE_FILE), exist_ok=True)
     
-    df.write_parquet(config.BRONZE_FILE)
+    df.write_parquet(config.BRONZE_FILE, mkdir=True)
 
     return df
