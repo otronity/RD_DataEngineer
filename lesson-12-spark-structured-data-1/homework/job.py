@@ -90,7 +90,7 @@ def clean(events: DataFrame) -> DataFrame:
             F.col("event_type").isin(TARGET_EVENT_TYPES)
             & F.col("event_id").isNotNull()
             & F.col("repo_name").isNotNull()
-            & F.col("public").isNotNull()
+            & (F.col("public") == True)
         )
         .dropDuplicates(["event_id"])
     )
@@ -101,12 +101,12 @@ def with_derived(events: DataFrame) -> DataFrame:
     return (
         events
         .withColumn("repo_owner", F.split(F.col("repo_name"), "/")[0])
-        .withColumn(
-            "is_bot",
-            F.coalesce(F.col("actor_login").endswith("[bot]"), F.lit(False))
+        .withColumn("is_bot",
+            F.coalesce(F.col("actor_login").endswith(BOT_SUFFIX), F.lit(False))
         )
         .withColumn("hour", F.date_trunc("hour", F.col("created_at")))
     )
+
 
 # ── Крок 5 — агрегати за власниками ───────────────────────────────────────────
 def owner_totals(events: DataFrame) -> DataFrame:
