@@ -101,8 +101,7 @@ def with_derived(events: DataFrame) -> DataFrame:
     return (
         events
         .withColumn("repo_owner", F.split(F.col("repo_name"), "/")[0])
-        .withColumn(
-            "is_bot",
+        .withColumn("is_bot",
             F.coalesce(F.col("actor_login").endswith(BOT_SUFFIX), F.lit(False))
         )
         .withColumn("hour", F.date_trunc("hour", F.col("created_at")))
