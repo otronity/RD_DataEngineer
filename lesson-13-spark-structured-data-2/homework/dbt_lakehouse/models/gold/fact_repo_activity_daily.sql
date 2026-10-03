@@ -1,9 +1,8 @@
 {{ config(materialized='table') }}
 
-
 with combined_activity as (
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(pushed_at, 'yyyyMMdd') as int) as date_id,
         count(*) as commits,
         count(distinct author_email) as distinct_committers,
@@ -20,7 +19,7 @@ with combined_activity as (
     union all
 
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(opened_at, 'yyyyMMdd') as int) as date_id,
         0 as commits,
         0 as distinct_committers,
@@ -37,7 +36,7 @@ with combined_activity as (
     union all
 
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(merged_at, 'yyyyMMdd') as int) as date_id,
         0 as commits,
         0 as distinct_committers,
@@ -54,7 +53,7 @@ with combined_activity as (
     union all
 
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(opened_at, 'yyyyMMdd') as int) as date_id,
         0 as commits,
         0 as distinct_committers,
@@ -71,7 +70,7 @@ with combined_activity as (
     union all
 
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(closed_at, 'yyyyMMdd') as int) as date_id,
         0 as commits,
         0 as distinct_committers,
@@ -88,7 +87,7 @@ with combined_activity as (
     union all
 
     select
-        md5(lower(trim(repo_name))) as repo_id,
+        md5(repo_name) as repo_id,
         cast(date_format(created_at, 'yyyyMMdd') as int) as date_id,
         0 as commits,
         0 as distinct_committers,
@@ -119,5 +118,4 @@ from combined_activity c
 where c.repo_id is not null
   AND c.repo_id != ''  
   and c.date_id is not null
-  and c.date_id >= 20180313
 group by c.repo_id, c.date_id

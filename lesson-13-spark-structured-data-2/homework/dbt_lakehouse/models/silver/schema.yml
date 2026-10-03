@@ -28,6 +28,9 @@ models:
 
   - name: pull_requests
     columns:
+      - name: pr_number
+        tests:
+          - not_null
       - name: state
         tests:
           - accepted_values:
@@ -35,6 +38,9 @@ models:
 
   - name: issues
     columns:
+      - name: issue_number
+        tests:
+          - not_null
       - name: state
         tests:
           - accepted_values:
