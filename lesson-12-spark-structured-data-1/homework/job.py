@@ -17,12 +17,18 @@ import shutil
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F  # noqa: F401  (знадобиться у ваших функціях)
+<<<<<<< HEAD
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from pyspark.sql.window import Window  # noqa: F401  (для top_repos_per_type)
 
 import os
 import sys
 
+=======
+from pyspark.sql.types import StructType
+from pyspark.sql.window import Window  # noqa: F401  (для top_repos_per_type)
+
+>>>>>>> upstream/main
 LANDING_GLOB = "data/landing/*.json.gz"
 OUTPUT_DIR = "data/output"
 
@@ -46,6 +52,7 @@ def event_schema() -> StructType:
 
     SPEC.md → «Крок 1».
     """
+<<<<<<< HEAD
     return StructType([
         StructField("id", StringType(), True),
         StructField("type", StringType(), True),
@@ -62,6 +69,9 @@ def event_schema() -> StructType:
         StructField("public", BooleanType(), True),
         StructField("created_at", StringType(), True),
     ])
+=======
+    raise NotImplementedError("Крок 1: event_schema")
+>>>>>>> upstream/main
 
 
 def read_raw(spark: SparkSession) -> DataFrame:
@@ -72,6 +82,7 @@ def read_raw(spark: SparkSession) -> DataFrame:
 # ── Крок 2 — сплющення ────────────────────────────────────────────────────────
 def flatten(raw: DataFrame) -> DataFrame:
     """Розгорнути вкладені структури у пласкі колонки. SPEC.md → «Крок 2»."""
+<<<<<<< HEAD
     return raw.select(
         F.col("id").alias("event_id"),
         F.col("type").alias("event_type"),
@@ -80,11 +91,15 @@ def flatten(raw: DataFrame) -> DataFrame:
         "public",
         F.col("created_at").cast("timestamp").alias("created_at"),
     )
+=======
+    raise NotImplementedError("Крок 2: flatten")
+>>>>>>> upstream/main
 
 
 # ── Крок 3 — очищення ─────────────────────────────────────────────────────────
 def clean(events: DataFrame) -> DataFrame:
     """Фільтри якості + дедуплікація. SPEC.md → «Крок 3»."""
+<<<<<<< HEAD
     return (
         events.filter(
             F.col("event_type").isin(TARGET_EVENT_TYPES)
@@ -94,10 +109,15 @@ def clean(events: DataFrame) -> DataFrame:
         )
         .dropDuplicates(["event_id"])
     )
+=======
+    raise NotImplementedError("Крок 3: clean")
+
+>>>>>>> upstream/main
 
 # ── Крок 4 — похідні колонки ──────────────────────────────────────────────────
 def with_derived(events: DataFrame) -> DataFrame:
     """Додати repo_owner, is_bot, hour. SPEC.md → «Крок 4»."""
+<<<<<<< HEAD
     return (
         events
         .withColumn("repo_owner", F.split(F.col("repo_name"), "/")[0])
@@ -225,11 +245,48 @@ def build_summary_optimized(events: DataFrame, dimensions: list[str]) -> DataFra
         )
         .select("dimension", "dimension_value", "events", "distinct_repos")
     )
+=======
+    raise NotImplementedError("Крок 4: with_derived")
+
+
+# ── Крок 5 — підсумки по власниках ────────────────────────────────────────────
+def owner_totals(events: DataFrame) -> DataFrame:
+    """Агрегат: один рядок на repo_owner. SPEC.md → «Крок 5»."""
+    raise NotImplementedError("Крок 5: owner_totals")
+
+
+# ── Крок 6 — топ-N репозиторіїв у межах типу події ────────────────────────────
+def top_repos_per_type(events: DataFrame, n: int) -> DataFrame:
+    """Топ-N репозиторіїв усередині кожного event_type. SPEC.md → «Крок 6»."""
+    raise NotImplementedError("Крок 6: top_repos_per_type")
+
+
+# ── Крок 7 — збагачення топу підсумками власника ──────────────────────────────
+def enrich_top_repos(top_repos: DataFrame, owners: DataFrame) -> DataFrame:
+    """LEFT JOIN топу з підсумками власників + частка. SPEC.md → «Крок 7»."""
+    raise NotImplementedError("Крок 7: enrich_top_repos")
+
+
+# ── Крок 8 — один зріз підсумкової таблиці ────────────────────────────────────
+def summary_slice(events: DataFrame, dimension: str) -> DataFrame:
+    """Один зріз підсумків за виміром, назва якого приходить аргументом.
+
+    SPEC.md → «Крок 8».
+    """
+    raise NotImplementedError("Крок 8: summary_slice")
+
+
+# ── Крок 9 — усі зрізи в одній таблиці ────────────────────────────────────────
+def build_summary(events: DataFrame, dimensions: list[str]) -> DataFrame:
+    """Усі зрізи, зібрані в одну таблицю. SPEC.md → «Крок 9»."""
+    raise NotImplementedError("Крок 9: build_summary")
+>>>>>>> upstream/main
 
 
 # ── Крок 10 — запис marts ─────────────────────────────────────────────────────
 def write_outputs(outputs: dict[str, tuple[DataFrame, str | None]]) -> None:
     """Записати кожен mart у data/output/<name>/. SPEC.md → «Крок 10»."""
+<<<<<<< HEAD
     for name, (df, partition_col) in outputs.items():
         out_path = os.path.join(OUTPUT_DIR, name)
         
@@ -241,6 +298,9 @@ def write_outputs(outputs: dict[str, tuple[DataFrame, str | None]]) -> None:
             writer = df.write.mode("overwrite")
             
         writer.parquet(out_path)
+=======
+    raise NotImplementedError("Крок 10: write_outputs")
+>>>>>>> upstream/main
 
 
 # ── Оркестрація (ДАНО) ────────────────────────────────────────────────────────
@@ -273,9 +333,12 @@ def main() -> None:
     top_repos = enrich_top_repos(top_repos_per_type(events, TOP_N), owners)
     summary = build_summary(events, SUMMARY_DIMENSIONS)
 
+<<<<<<< HEAD
     # Викликаємо оптимізовану версію:
     # summary = build_summary_optimized(events, SUMMARY_DIMENSIONS)
 
+=======
+>>>>>>> upstream/main
     marts: dict[str, tuple[DataFrame, str | None]] = {
         "events": (events, "event_type"),
         "owner_totals": (owners, None),
