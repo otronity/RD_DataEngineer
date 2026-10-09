@@ -2,6 +2,16 @@
 # Додали модель і повісили на неї тег — DAG чіпати не треба.
 
 selectors:
+  - name: bronze_contract
+    description: "Тести контрактів та якості вхідних даних Bronze (без крос-шарових звірок)."
+    definition:
+      intersection:
+        - method: tag
+          value: bronze # або метод вибору ваших тестів джерел
+        - exclude:
+            - method: tag
+              value: reconcile
+
   - name: silver
     description: "Очищені події та поїздки (incremental, вікно — нові рядки Bronze)."
     definition:
@@ -22,3 +32,4 @@ selectors:
     definition:
       method: tag
       value: reconcile
+  
