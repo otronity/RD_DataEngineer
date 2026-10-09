@@ -24,7 +24,7 @@ from __future__ import annotations
 import os
 import signal
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from types import FrameType
 
@@ -53,12 +53,11 @@ def _stop(signum: int, frame: FrameType | None) -> None:
 def landing_path(
     base: Path, ingested_at: datetime, partition: int, first_offset: int, last_offset: int
 ) -> Path:
-    """Шлях файлу для батчу. Детермінований: той самий діапазон офсетів -> те саме імʼя.
-
-    TODO (1): `base/dt=YYYY-MM-DD/hour=HH/part-p{partition}-o{first:012d}-o{last:012d}.ndjson`,
-    де dt і hour — UTC-час запису (`ingested_at`). Формат — у SPEC.md, розділ 2.2.
-    """
-    raise NotImplementedError("TODO (1): landing_path")
+    """Шлях файлу для батчу. Детермінований: той самий діапазон офсетів -> те саме імʼя."""
+    dt_str = ingested_at.strftime("%Y-%m-%d")
+    hour_str = ingested_at.strftime("%H")
+    filename = f"part-p{partition}-o{first_offset:012d}-o{last_offset:012d}.ndjson"
+    return base / f"dt={dt_str}" / f"hour={hour_str}" / filename
 
 
 def write_batch(
@@ -66,14 +65,48 @@ def write_batch(
     ingested_at: datetime,
     records: list[tuple[int, int, bytes]],
 ) -> list[Path]:
-    """Записує батч (partition, offset, value) у landing. Повертає створені файли.
+    """Записує батч (partition, offset, value) у landing. Повертає створені файли."""
+    if not records:
+        return []
 
-    TODO (2): один файл на партицію, записи відсортовано за офсетом, один JSON-обʼєкт на рядок
-    (рівно один `\\n` у кінці), атомарний запис (`*.ndjson.tmp` -> fsync -> `os.replace`), збій
-    не лишає ні готового файлу, ні `.tmp`. Повторний виклик із тим самим батчем нічого не
-    дублює. Вимоги — у SPEC.md, розділ 2.2.
-    """
-    raise NotImplementedError("TODO (2): write_batch")
+    # Групуємо записи за партицією
+    partitions_data: dict[int, list[tuple[int, bytes]]] = {}
+    for partition, offset, value in records:
+        partitions_data.setdefault(partition, []).append((offset, value))
+
+    created_files: list[Path] = []
+
+    for partition, items in partitions_data.items():
+        # Сортуємо записи за офсетом
+        items.sort(key=lambda x: x[0])
+        first_offset = items[0][0]
+        last_offset = items[-1][0]
+
+        file_path = landing_path(base, ingested_at, partition, first_offset, last_offset)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        tmp_path = file_path.with_suffix(file_path.suffix + ".tmp")
+
+        try:
+            # Атомарний запис через tmp-файл та fsync
+            with open(tmp_path, "wb") as f:
+                for _offset, value in items:
+                    # Гарантуємо один символ нового рядка \n у кінці
+                    line = value.rstrip(b"\r\n") + b"\n"
+                    f.write(line)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(tmp_path, file_path)
+            created_files.append(file_path)
+            # created_files.append(path := file_path)  # type: ignore[assignment]
+        except Exception:
+            # Якщо сталася помилка під час запису, видаляємо .tmp файл, щоб не лишати сміття
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise
+
+    return created_files
 
 
 def main() -> None:
@@ -106,11 +139,13 @@ def main() -> None:
         if not batch:
             batch_started = time.monotonic()
             return
-        # TODO (3): записати батч у landing (write_batch), і ЛИШЕ ПОТІМ закомітити офсети
-        # (`consumer.commit(asynchronous=False)`). Порядок «запис -> commit» — це те, що не дає
-        # втрачати повідомлення: падіння між ними дасть дублікати, але не втрати.
-        raise NotImplementedError("TODO (3): flush()")
-        files: list[Path] = []
+
+        ingested_at = datetime.now(UTC)
+        files = write_batch(config.LANDING_DIR, ingested_at, batch)
+
+        # Закомітити офсети ЛИШЕ після успішного запису файлу
+        consumer.commit(asynchronous=False)
+
         total += len(batch)
         print(f"  {len(batch)} подій -> {', '.join(p.name for p in files)} (всього {total})")
         batch = []
